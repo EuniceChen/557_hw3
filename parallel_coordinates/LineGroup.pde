@@ -24,6 +24,11 @@ class LineGroup {
   Point getPoint2(int i) {
     return lines.get(i).b;
   }
+  
+  Point getPoint(int i) {
+    if(i == 0) return getPoint1(0);
+    else return getPoint2(i - 1);
+  }
 }
 
 class Line {

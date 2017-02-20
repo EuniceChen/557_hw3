@@ -10,6 +10,9 @@ Table table;
 int numberRows, numberColumns;
 ArrayList<LineGroup> groups;
 
+float topMargin, bottomMargin, leftMargin, rightMargin;
+int sizeOfText;
+
 // Selecting box 
 boolean boxSelecting = false, boxSelected = false;
 Point boxInitPoint = new Point(0, 0), boxEndPoint = new Point(0, 0); 
@@ -17,24 +20,26 @@ ArrayList<Line> sides = new ArrayList<Line>();
 
 // Trend
 int trendFlipped = -1;
-
+Point trendMouse;
+int trendColored = -1, dimensionToColor = 0;
+Point colorMouse;
+float displayHeightRange = 0;
 void setup() {
-  float topMargin = 0.05 * height, bottomMargin = height - 0.1 * height, leftMargin = 0.1 * width, rightMargin = width - 0.1 * width;
-  int sizeOfText = (width + height) / 100;
+  topMargin = 0.05 * height; bottomMargin = height - 0.1 * height; leftMargin = 0.1 * width; rightMargin = width - 0.1 * width;
+  sizeOfText = (width + height) / 100;
+  displayHeightRange = bottomMargin - topMargin - 2 * sizeOfText;
   size(700, 700);
   loadTable();
-  loadLines(topMargin, bottomMargin, leftMargin, rightMargin, sizeOfText);
+  loadLines();
 }
 
 void draw() {
   background(255);
-  float topMargin = 0.05 * height, bottomMargin = height - 0.1 * height, leftMargin = 0.1 * width, rightMargin = width - 0.1 * width;
-  int sizeOfText = (width + height) / 100;
   if(boxSelecting || boxSelected) {
     drawSelectBox(boxInitPoint, boxEndPoint);
   }
   drawLines();
-  drawCoordinates(topMargin, bottomMargin, leftMargin, rightMargin, sizeOfText);
+  drawCoordinates();
   //drawSelectBoxButton(topMargin, bottomMargin, leftMargin, rightMargin, sizeOfText);
 }
 
@@ -45,7 +50,7 @@ void initializeTrend() {
   }
 }
 
-void loadLines(float topMargin, float bottomMargin, float leftMargin, float rightMargin, int sizeOfText) {  
+void loadLines() {  
   float interval = (rightMargin - leftMargin) / (numberColumns - 1);
   float startXpos = leftMargin;
   
@@ -122,7 +127,7 @@ void loadTable() {
   initializeTrend();
 }
 
-void drawCoordinates(float topMargin, float bottomMargin, float leftMargin, float rightMargin, int sizeOfText) {
+void drawCoordinates() {
   float interval = (rightMargin - leftMargin) / (numberColumns - 1);
   float startXpos = leftMargin;
 
@@ -132,11 +137,39 @@ void drawCoordinates(float topMargin, float bottomMargin, float leftMargin, floa
   for(int i = 0; i < numberColumns; i++){
     String name = tableHeaders[i];
     fill(0);
-    text(highestNum.get(name), startXpos, topMargin);
-    text(lowestNum.get(name), startXpos, bottomMargin);
+    if(dimensionToColor == i) {
+      fill(200, 0, 0);
+    }
+    
+    if(columnTrends.get(i) == Trend.increasing) {
+      text(highestNum.get(name), startXpos, topMargin);
+      text(lowestNum.get(name), startXpos, bottomMargin);
+    }
+    else {
+      text(lowestNum.get(name), startXpos, topMargin);
+      text(highestNum.get(name), startXpos, bottomMargin);
+    }
+    
+    fill(255);
+    rect(startXpos - 2 * sizeOfText, bottomMargin + sizeOfText, 4 * sizeOfText, 1.5 * sizeOfText, sizeOfText);
+    
     fill(#797878);
+    if(dimensionToColor == i) {
+      fill(#D88888);
+    }
+    
     text(name, startXpos, bottomMargin + 2 * sizeOfText);
+     
+    // Dimension Color
+    if(mouseX >= startXpos - 2 * sizeOfText && mouseX <= startXpos + 4 * sizeOfText &&
+      mouseY >= bottomMargin + sizeOfText && mouseY <= bottomMargin + 2 * sizeOfText) {
+       trendColored = i;
+       colorMouse = new Point(mouseX, mouseY);
+     }
+    
     line(startXpos, topMargin + sizeOfText, startXpos, bottomMargin - sizeOfText);
+    
+    // Trend
     if(columnTrends.get(i) == Trend.increasing) {
       triangle(startXpos, bottomMargin + 3 * sizeOfText, startXpos - 0.5 * sizeOfText, bottomMargin + 3.5 * sizeOfText, startXpos + 0.5 * sizeOfText, bottomMargin + 3.5 * sizeOfText);
     }
@@ -147,6 +180,7 @@ void drawCoordinates(float topMargin, float bottomMargin, float leftMargin, floa
     if(mouseX >= startXpos - 0.5 * sizeOfText && mouseX <= startXpos + 0.5 * sizeOfText
       && mouseY >= bottomMargin + 3 * sizeOfText && mouseY <= bottomMargin + 3.5 * sizeOfText) {
         trendFlipped = i;
+        trendMouse = new Point(mouseX, mouseY);
     }
     startXpos += interval;
   }
@@ -155,30 +189,35 @@ void drawCoordinates(float topMargin, float bottomMargin, float leftMargin, floa
 void drawLines() {  
   fill(0);
   stroke(0);
-  Point mousePoint = new Point(mouseX, mouseY);
-  for(LineGroup group : groups) {
-    for(int i = 0; i < group.getCount(); i++) {
-      if(isOnSegment(group.getLine(i), mousePoint)) {
-        fill(#2E60E5);
-        stroke(#2E60E5);
-        break;
+  for(int i = 0; i < numberRows; i++) {
+    LineGroup group = groups.get(i);
+    float coloringRatio = group.getPoint(dimensionToColor).y / displayHeightRange;
+    color lineColor = color(255, 0, 0, 255 - 200 * coloringRatio);
+    stroke(lineColor);
+    strokeWeight(1);
+    for(int j = 0; j < group.getCount(); j++) {
+      if(isLineInBox(group.getLine(j))) {
+        fill(#1E91D6);
+        stroke(#1E91D6);
+        strokeWeight(1.5);
       }
-      if(isLineInBox(group.getLine(i))) {
-        fill(#2E60E5);
-        stroke(#2E60E5);
-        break;
-      }
+      if(isMouseOnSegment(group.getLine(j))) {
+        fill(#541ED6);
+        stroke(#541ED6);
+        strokeWeight(1.5);
+      }      
     }
-    for(int i = 0; i < group.getCount(); i++) {
-      line(group.getPoint1(i).x, group.getPoint1(i).y, group.getPoint2(i).x, group.getPoint2(i).y);
+    for(int j = 0; j < group.getCount(); j++) {
+      line(group.getPoint1(j).x, group.getPoint1(j).y, group.getPoint2(j).x, group.getPoint2(j).y);
       //println(group.getPoint1(i).x, group.getPoint1(i).y, group.getPoint2(i).x, group.getPoint2(i).y);
     }
+    strokeWeight(1);
     stroke(0);
     fill(0);
   }
 }
 
-void drawSelectBoxButton(float topMargin, float bottomMargin, float leftMargin, float rightMargin, int sizeOfText) {
+void drawSelectBoxButton() {
   fill(255);
   rect(leftMargin, bottomMargin + 3 * sizeOfText , sizeOfText * 5, 1.5 * sizeOfText, sizeOfText / 2.5);
   textAlign(CENTER);
@@ -211,9 +250,7 @@ void mouseReleased() {
 
 void mouseClicked() {
   boxSelected = false;
-  float topMargin = 0.05 * height, bottomMargin = height - 0.1 * height, leftMargin = 0.1 * width, rightMargin = width - 0.1 * width;
-  int sizeOfText = (width + height) / 100;
-  if(trendFlipped != -1) {
+  if(trendFlipped != -1 && mouseX == trendMouse.x && mouseY == trendMouse.y) {
     println("Tapped");
     if(columnTrends.get(trendFlipped) == Trend.increasing) {
       columnTrends.set(trendFlipped, Trend.decreasing);
@@ -222,9 +259,19 @@ void mouseClicked() {
       columnTrends.set(trendFlipped, Trend.increasing);
     }
     
-    loadLines(topMargin, bottomMargin, leftMargin, rightMargin, sizeOfText);
+    loadLines();
     drawLines();
+    drawCoordinates();
     trendFlipped = -1;
+  }
+  
+  if(trendColored != -1 && mouseX == colorMouse.x && mouseY == colorMouse.y) {
+    dimensionToColor = trendColored;
+    trendColored = -1;
+    println("Dimension -> " + tableHeaders[dimensionToColor] + " index -> " + dimensionToColor);
+
+    drawLines();
+    drawCoordinates();
   }
 }
 
@@ -257,4 +304,22 @@ boolean isLineInBox(Line l) {
     return isInBox(boxInitPoint, boxEndPoint, l);
   }
   return false;
+}
+
+boolean isMouseOnSegment(Line l) {
+  ArrayList<Line> mouseBox = new ArrayList<Line>();
+  Point p1 = new Point(mouseX - 1, mouseY - 1), 
+        p2 = new Point(mouseX + 1, mouseY - 1),
+        p3 = new Point(mouseX + 1, mouseY + 1),
+        p4 = new Point(mouseX - 1, mouseY + 1);
+  mouseBox.add(new Line(p1, p2));
+  mouseBox.add(new Line(p2, p3));
+  mouseBox.add(new Line(p3, p4));
+  mouseBox.add(new Line(p4, p1));
+  for(int i = 0; i < 4; i++) {
+      if(isIntersected(mouseBox.get(i), l)) {
+        return true;
+      };
+  }
+  return isInBox(p1, p3, l);
 }
