@@ -1,6 +1,6 @@
 class LineGroup {
   ArrayList<Line> lines;
-
+  String name;
   LineGroup() {
     lines = new ArrayList<Line>();
   }
@@ -28,6 +28,10 @@ class LineGroup {
   Point getPoint(int i) {
     if(i == 0) return getPoint1(0);
     else return getPoint2(i - 1);
+  }
+  
+  void setName(String groupName) {
+    name = groupName;
   }
 }
 

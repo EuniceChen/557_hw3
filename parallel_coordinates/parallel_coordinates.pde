@@ -4,11 +4,12 @@ HashMap<String,Float> highestNum = new HashMap<String, Float>();
 HashMap<String,Float> lowestNum = new HashMap<String, Float>();
 String filename = "data.csv";
 
-String[] tableHeaders;
+ArrayList<String> tableHeaders;
 ArrayList<Trend> columnTrends;
 Table table;
 int numberRows, numberColumns;
 ArrayList<LineGroup> groups;
+String nameHeader;
 
 float topMargin, bottomMargin, leftMargin, rightMargin;
 int sizeOfText;
@@ -64,8 +65,8 @@ void loadLines() {
     startXpos = leftMargin;
     LineGroup group = new LineGroup();
     for(int i = 0; i < numberColumns - 1; i++) {
-      String name1 = tableHeaders[i];
-      String name2 = tableHeaders[i + 1];
+      String name1 = tableHeaders.get(i);
+      String name2 = tableHeaders.get(i + 1);
       Point p1 = new Point(startXpos, (bottomMargin - sizeOfText) - ((row.getFloat(name1) - lowestNum.get(name1)) * 1.0 * ratios.get(name1)));
       Point p2 = new Point(startXpos + interval, (bottomMargin - sizeOfText) - ((row.getFloat(name2) - lowestNum.get(name2)) * 1.0 * ratios.get(name2)));
       
@@ -85,6 +86,8 @@ void loadLines() {
       
       Line l = new Line(p1, p2);
       group.addLine(l);
+      group.setName(row.getString(nameHeader));
+      
       //println(name1 + ": " + row.getFloat(name1) + " " + name2 + ": " + row.getFloat(name2));
       //println(startXpos, (bottomMargin - sizeOfText) - ((row.getFloat(name1) - lowestNum.get(name1)) * 1.0 * ratios.get(name1)), startXpos + interval, (bottomMargin - sizeOfText) - ((row.getFloat(name2) - lowestNum.get(name2)) * 1.0 * ratios.get(name2)));
       startXpos += interval;
@@ -95,13 +98,18 @@ void loadLines() {
 
 void loadTable() {
   String[] lines = loadStrings(filename);
-  tableHeaders = split(lines[0], ",");
+  String[] allHeaders = split(lines[0], ",");
+  nameHeader = allHeaders[0];
+  tableHeaders = new ArrayList<String>();
+  for(int i = 1; i < allHeaders.length; i++) {
+    tableHeaders.add(allHeaders[i]);
+  }
  
   table = loadTable(filename, "header");
   println(table.getRowCount() + " rows.");
   
   numberRows = table.getRowCount();
-  numberColumns =  table.getColumnCount();
+  numberColumns =  table.getColumnCount() - 1;
   println(numberColumns + " columns.");
   
   for(String name : tableHeaders) {
@@ -133,9 +141,8 @@ void drawCoordinates() {
 
   textSize(sizeOfText);
   textAlign(CENTER);
-  //for(String name : tableHeaders) {
   for(int i = 0; i < numberColumns; i++){
-    String name = tableHeaders[i];
+    String name = tableHeaders.get(i);
     fill(0);
     if(dimensionToColor == i) {
       fill(200, 0, 0);
@@ -193,6 +200,7 @@ void drawLines() {
     LineGroup group = groups.get(i);
     float coloringRatio = group.getPoint(dimensionToColor).y / displayHeightRange;
     color lineColor = color(255, 0, 0, 255 - 200 * coloringRatio);
+    
     stroke(lineColor);
     strokeWeight(1);
     for(int j = 0; j < group.getCount(); j++) {
@@ -205,11 +213,11 @@ void drawLines() {
         fill(#541ED6);
         stroke(#541ED6);
         strokeWeight(1.5);
+        text(group.name, group.getPoint1(0).x - 2 * sizeOfText, group.getPoint1(0).y);
       }      
     }
     for(int j = 0; j < group.getCount(); j++) {
       line(group.getPoint1(j).x, group.getPoint1(j).y, group.getPoint2(j).x, group.getPoint2(j).y);
-      //println(group.getPoint1(i).x, group.getPoint1(i).y, group.getPoint2(i).x, group.getPoint2(i).y);
     }
     strokeWeight(1);
     stroke(0);
@@ -236,7 +244,6 @@ void mousePressed() {
 void mouseDragged() {
   stroke(0);
   if(boxSelecting) {
-    //rect(boxInitPoint.x, boxInitPoint.y, mouseX - boxInitPoint.x, mouseY - boxInitPoint.y);
     boxEndPoint = new Point(mouseX, mouseY);
     drawSelectBox(boxInitPoint, boxEndPoint);
     setSides(boxInitPoint, boxEndPoint);
@@ -268,7 +275,7 @@ void mouseClicked() {
   if(trendColored != -1 && mouseX == colorMouse.x && mouseY == colorMouse.y) {
     dimensionToColor = trendColored;
     trendColored = -1;
-    println("Dimension -> " + tableHeaders[dimensionToColor] + " index -> " + dimensionToColor);
+    println("Dimension -> " + tableHeaders.get(dimensionToColor) + " index -> " + dimensionToColor);
 
     drawLines();
     drawCoordinates();
@@ -295,8 +302,6 @@ void setSides(Point initPoint, Point endPoint) {
 boolean isLineInBox(Line l) {
   if(boxSelected || boxSelecting) {
     for(int i = 0; i < 4; i++) {
-      //println("Side" + i + " " + sides.get(i).a.x, sides.get(i).a.y, sides.get(i).b.x, sides.get(i).b.y);
-      //println("l " + l.a.x, l.a.y, l.b.x, l.b.y);
       if(isIntersected(sides.get(i), l)) {
         return true;
       };
