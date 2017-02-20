@@ -43,6 +43,6 @@ class Point {
   }
 }
 
-enum trend {
-  up, down
+enum Trend {
+  increasing, decreasing
 }
