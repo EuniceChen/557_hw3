@@ -231,13 +231,11 @@ void drawCoordinates() {
     line(startXpos, topMargin + sizeOfText, startXpos, bottomMargin - sizeOfText);
     
     // Trend
-    if(!dimSelectEnabled) {
-      if(columnTrends.get(i) == Trend.increasing) {
-        triangle(startXpos, bottomMargin + 3 * sizeOfText, startXpos - 0.5 * sizeOfText, bottomMargin + 3.5 * sizeOfText, startXpos + 0.5 * sizeOfText, bottomMargin + 3.5 * sizeOfText);
-      }
-      else {
-        triangle(startXpos, bottomMargin + 3.5 * sizeOfText, startXpos - 0.5 * sizeOfText, bottomMargin + 3 * sizeOfText, startXpos + 0.5 * sizeOfText, bottomMargin + 3 * sizeOfText);
-      }
+    if(columnTrends.get(i) == Trend.increasing) {
+      triangle(startXpos, bottomMargin + 3 * sizeOfText, startXpos - 0.5 * sizeOfText, bottomMargin + 3.5 * sizeOfText, startXpos + 0.5 * sizeOfText, bottomMargin + 3.5 * sizeOfText);
+    }
+    else {
+      triangle(startXpos, bottomMargin + 3.5 * sizeOfText, startXpos - 0.5 * sizeOfText, bottomMargin + 3 * sizeOfText, startXpos + 0.5 * sizeOfText, bottomMargin + 3 * sizeOfText);
     }
     
     if(mouseX >= startXpos - 0.5 * sizeOfText && mouseX <= startXpos + 0.5 * sizeOfText
